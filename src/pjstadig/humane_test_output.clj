@@ -3,31 +3,9 @@
   (:require [clojure.data :as data]
             [clojure.pprint :as pp]))
 
-(defn =-body
-  [msg a more]
-  `(let [a# ~a]
-     (if-let [more# (seq (list ~@more))]
-       (let [result# (apply = a# more#)]
-         (if result#
-           (do-report {:type :pass, :message ~msg,
-                       :expected a#, :actual more#})
-           (do-report {:type :fail, :message ~msg,
-                       :expected a#, :actual more#,
-                       :diffs (map vector
-                                   more#
-                                   (map #(take 2 (data/diff a# %))
-                                        more#))}))
-         result#)
-       (throw (Exception. "= expects more than one argument")))))
-
 (defonce activation-body
   (delay
    (when (not (System/getenv "INHUMANE_TEST_OUTPUT"))
-     (defmethod assert-expr '= [msg [_ a & more]]
-       (=-body msg a more))
-     (defmethod assert-expr 'clojure.core/= [msg [_ a & more]]
-       (=-body msg a more))
-
      (defmethod report :fail
        [{:keys [type expected actual diffs message] :as event}]
        (with-test-out
@@ -36,7 +14,20 @@
          (when (seq *testing-contexts*) (println (testing-contexts-str)))
          (when message (println message))
          (binding [*out* (pp/get-pretty-writer *out*)]
-           (let [print-expected (fn [actual]
+           (let [diffs (when (and (seq actual)
+                                  (= 'not (first actual))
+                                  (seq (second actual))
+                                  (#{'clojure.core/= '=} (first (second actual)))
+                                  (< 2 (count (second actual))))
+                         (let [a (nth (second actual) 1)
+                               more (drop 2 (second actual))]
+                           (map vector
+                                more
+                                (map #(take 2 (data/diff a %)) more))))
+                 expected (if (seq diffs)
+                            (nth (second actual) 1)
+                            expected)
+                 print-expected (fn [actual]
                                   (print "expected: ")
                                   (pp/pprint expected)
                                   (print "  actual: ")
