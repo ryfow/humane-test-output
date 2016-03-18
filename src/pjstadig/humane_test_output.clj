@@ -14,7 +14,8 @@
          (when (seq *testing-contexts*) (println (testing-contexts-str)))
          (when message (println message))
          (binding [*out* (pp/get-pretty-writer *out*)]
-           (let [diffs (when (and (seq actual)
+           (let [diffs (when (and (seq? actual)
+                                  (seq actual)
                                   (= 'not (first actual))
                                   (seq (second actual))
                                   (#{'clojure.core/= '=} (first (second actual)))

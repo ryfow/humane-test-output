@@ -27,3 +27,6 @@
      (is (= ~expected ~actual) "THIS ONE SHOULD ALSO FAIL")))
 
 (deftest+ ^:intentionally-failing t-macro-wrapping 1 2)
+
+(deftest non-seq-actual
+  (clojure.test/report {:type :fail :expected 4 :actual 5} ))
